@@ -11,11 +11,11 @@ import asyncio
 import platform
 
 # Import custom modules
-from database import db_manager
-from serper_api import serper_api
+from Ai_scraper.src.utils.database import db_manager
+from Ai_scraper.src.services.serper_api import serper_api
 # Use enhanced scraper with retry mechanism and concurrent processing
 try:
-    from scrape_ai_enhanced import process_links_from_database, get_results_for_download
+    from Ai_scraper.src.services.scrape_ai_enhanced import process_links_from_database, get_results_for_download
     ENHANCED_SCRAPER_AVAILABLE = True
     print("✓ Using enhanced scraper with retry mechanism and concurrent processing")
 except ImportError:
