@@ -10,8 +10,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, List, Optional, Callable
 from dotenv import load_dotenv
 from scrapegraphai.graphs import SmartScraperGraph
-from llm_services import get_service
-from database import db_manager
+from Ai_scraper.src.utils.llm_services import get_service
+from Ai_scraper.src.utils.database import db_manager
 
 load_dotenv()
 
