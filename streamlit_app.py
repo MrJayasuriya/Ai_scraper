@@ -21,10 +21,22 @@ try:
     from src.services.scrape_ai_enhanced import process_links_from_database, get_results_for_download
     ENHANCED_SCRAPER_AVAILABLE = True
     print("✓ Using enhanced scraper with retry mechanism and concurrent processing")
-except ImportError:
-    from src.services.scrape_ai_enhanced import process_links_from_database, get_results_for_download
-    ENHANCED_SCRAPER_AVAILABLE = False
-    print("! Using original scraper (enhanced version not available)")
+except ImportError as e:
+    print(f"! Enhanced scraper not available ({e}), falling back to simple scraper")
+    try:
+        from src.services.scrape_ai_simple import process_links_from_database, get_results_for_download
+        ENHANCED_SCRAPER_AVAILABLE = False
+        print("✓ Using simple scraper (deployment mode)")
+    except ImportError as e2:
+        print(f"❌ No scraper available: {e2}")
+        # Create dummy functions as last resort
+        def process_links_from_database(progress_callback=None, status_callback=None, user_id=None):
+            if status_callback:
+                status_callback("❌ No scraper available - please check dependencies")
+            return 0
+        def get_results_for_download(user_id=None):
+            return []
+        ENHANCED_SCRAPER_AVAILABLE = False
 # Import Google Maps Extractor
 from google_maps_extractor import GoogleMapsExtractor
 

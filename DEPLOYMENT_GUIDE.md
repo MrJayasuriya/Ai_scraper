@@ -10,6 +10,18 @@
 3. **Railway** (Modern alternative)
 4. **DigitalOcean App Platform** (Reliable)
 
+## 🔧 **Fixed: ModuleNotFoundError Issue**
+
+**The app now includes a smart fallback system:**
+- **Enhanced Scraper** (full features) - for local development
+- **Simple Scraper** (lightweight) - for deployment environments
+- **Automatic fallback** - if heavy dependencies aren't available
+
+**Files created:**
+- `requirements.txt` - Lightweight dependencies for deployment
+- `requirements-enhanced.txt` - Full dependencies for local development
+- `src/services/scrape_ai_simple.py` - Lightweight fallback scraper
+
 ---
 
 ## 🎯 **Method 1: Streamlit Community Cloud (RECOMMENDED)**
@@ -318,4 +330,4 @@ pip install -r requirements.txt
 python -c "import os; print(os.getenv('SERPER_API_KEY'))"
 ```
 
-**�� Happy Deploying!** 
+** Happy Deploying!** 
