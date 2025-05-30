@@ -1,14 +1,38 @@
-import requests
+from apify_client import ApifyClient
 
-url = "https://jsearch.p.rapidapi.com/search"
+# Initialize the ApifyClient with your API token
+client = ApifyClient("apify_api_YngozeH7dWBGzFmzvITPYFclC6vPQZ00kPNq")
 
-querystring = {"query":"developer jobs in chicago","page":"1","num_pages":"1","country":"us","date_posted":"all"}
-
-headers = {
-	"x-rapidapi-key": "0597028da3mshba0adfb0a4deeafp136104jsn630c8f1a47e0",
-	"x-rapidapi-host": "jsearch.p.rapidapi.com"
+# Prepare the Actor input
+run_input = {
+    "searchStringsArray": ["Inspira Health Network"],
+    "locationQuery": "New Jersey, USA",
+    "maxCrawledPlacesPerSearch": 5,  # Get multiple locations
+    "language": "en",
+    "searchMatching": "all",
+    "placeMinimumStars": "",  # Changed back to empty string as API expects string
+    "website": "allPlaces",
+    "skipClosedPlaces": False,
+    "scrapePlaceDetailPage": True,  # Get detailed info including contact
+    "scrapeTableReservationProvider": False,
+    "includeWebResults": False,
+    "scrapeDirectories": False,
+    "maxQuestions": 0,
+    "scrapeContacts": True,  # Enable contact scraping
+    "maximumLeadsEnrichmentRecords": 0,
+    "maxReviews": 0,
+    "reviewsSort": "newest",
+    "reviewsFilterString": "",
+    "reviewsOrigin": "all",
+    "scrapeReviewsPersonalData": True,
+    "maxImages": 0,
+    "scrapeImageAuthors": False,
+    "allPlacesNoSearchAction": "",
 }
 
-response = requests.get(url, headers=headers, params=querystring)
+# Run the Actor and wait for it to finish
+run = client.actor("nwua9Gu5YrADL7ZDj").call(run_input=run_input)
 
-print(response.json())
+# Fetch and print Actor results from the run's dataset (if there are any)
+for item in client.dataset(run["defaultDatasetId"]).iterate_items():
+    print(item)

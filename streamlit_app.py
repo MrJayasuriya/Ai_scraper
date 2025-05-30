@@ -25,6 +25,8 @@ except ImportError:
     from src.services.scrape_ai_enhanced import process_links_from_database, get_results_for_download
     ENHANCED_SCRAPER_AVAILABLE = False
     print("! Using original scraper (enhanced version not available)")
+# Import Google Maps Extractor
+from google_maps_extractor import GoogleMapsExtractor
 
 # Fix for Windows asyncio subprocess issue
 if platform.system() == 'Windows':
@@ -1066,7 +1068,7 @@ def main():
             st.rerun()
     
     # Main content tabs with premium styling
-    tab1, tab2, tab3, tab4 = st.tabs(["🔍 Intelligent Search", "🎯 AI Extraction", "📊 Analytics Center", "💼 JSearch Job Scraper"])
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["🔍 Intelligent Search", "🎯 AI Extraction", "📊 Analytics Center", "💼 JSearch Job Scraper", "🗺️ Google Maps Extractor"])
     
     with tab1:
         st.markdown('<div class="glass-card">', unsafe_allow_html=True)
@@ -1793,6 +1795,301 @@ def main():
             # JSON view for debugging (separate expander, not nested)
             with st.expander("🔧 Raw JSON Data (for debugging)"):
                 st.json(st.session_state.job_scraper_results[:3])  # Show first 3 jobs
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with tab5:
+        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+        st.markdown('<div class="section-header">🗺️ Google Maps Business Extractor</div>', unsafe_allow_html=True)
+        
+        # Initialize session state for Google Maps results
+        if 'google_maps_results' not in st.session_state:
+            st.session_state.google_maps_results = None
+        if 'google_maps_running' not in st.session_state:
+            st.session_state.google_maps_running = False
+        
+        # Check if Apify API key is available
+        apify_key = os.getenv("APIFY_KEY")
+        if not apify_key:
+            display_status_card("error", "Apify API key configuration required. Please add APIFY_KEY to your environment.", "⚠️")
+            st.markdown('</div>', unsafe_allow_html=True)
+            return
+        
+        # Premium Google Maps extractor interface
+        st.markdown("""
+        <div style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(59, 130, 246, 0.1)); 
+                    border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 16px; padding: 2rem; margin: 1rem 0;">
+            <h3 style="color: #22c55e; margin: 0 0 1rem 0;">🗺️ Extract Business Contact Data from Google Maps</h3>
+            <p style="color: rgba(255, 255, 255, 0.8); margin: 0;">
+                Extract comprehensive business information including phone numbers, addresses, websites, and more from Google Maps.
+                Perfect for getting contact details from job posting companies!
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Initialize Google Maps extractor
+        try:
+            google_extractor = GoogleMapsExtractor(apify_key)
+            display_status_card("success", "Google Maps extractor ready • Access to comprehensive business data", "✅")
+        except Exception as e:
+            display_status_card("error", f"Failed to initialize Google Maps extractor: {str(e)}", "❌")
+            st.markdown('</div>', unsafe_allow_html=True)
+            return
+        
+        # Business extraction parameters
+        st.markdown('<div class="section-header">🏢 Business Search Parameters</div>', unsafe_allow_html=True)
+        
+        col1, col2, col3 = st.columns(3, gap="large")
+        
+        with col1:
+            # Company input methods
+            input_method = st.radio(
+                "📥 Input Method",
+                ["Manual Entry", "From Job Results", "Upload List"],
+                help="Choose how to provide company names"
+            )
+        
+        with col2:
+            location = st.text_input(
+                "📍 Search Location",
+                value="United States",
+                placeholder="e.g., New York, NY or California, USA",
+                help="Geographic area to search for businesses"
+            )
+        
+        with col3:
+            save_to_db = st.checkbox(
+                "💾 Save to Database",
+                value=True,
+                help="Store extracted business data in your personal database"
+            )
+        
+        # Company names input
+        companies_to_search = []
+        
+        if input_method == "Manual Entry":
+            st.markdown("### 📝 Enter Company Names")
+            company_text = st.text_area(
+                "Company Names (one per line)",
+                placeholder="Inspira Health Network\nTesla\nStarbucks\nMicrosoft",
+                help="Enter each company name on a separate line",
+                height=150
+            )
+            if company_text.strip():
+                companies_to_search = [line.strip() for line in company_text.split('\n') if line.strip()]
+        
+        elif input_method == "From Job Results":
+            st.markdown("### 💼 Extract from Job Search Results")
+            
+            # Get unique company names from job results if available
+            if 'job_scraper_results' in st.session_state and st.session_state.job_scraper_results:
+                jobs_df = pd.DataFrame(st.session_state.job_scraper_results)
+                if 'employer_name' in jobs_df.columns:
+                    unique_companies = jobs_df['employer_name'].dropna().unique().tolist()
+                    
+                    if unique_companies:
+                        st.info(f"📊 Found {len(unique_companies)} unique companies from job search results")
+                        
+                        # Allow user to select companies
+                        selected_companies = st.multiselect(
+                            "Select Companies to Extract",
+                            unique_companies,
+                            default=unique_companies[:10],  # Pre-select first 10
+                            help="Choose which companies to extract business data for"
+                        )
+                        companies_to_search = selected_companies
+                    else:
+                        st.warning("No company names found in job search results")
+                else:
+                    st.warning("No employer information available in job search results")
+            else:
+                st.warning("No job search results available. Run a job search first in the JSearch tab.")
+        
+        elif input_method == "Upload List":
+            st.markdown("### 📄 Upload Company List")
+            uploaded_file = st.file_uploader(
+                "Upload CSV/TXT file",
+                type=['csv', 'txt'],
+                help="Upload a file with company names"
+            )
+            
+            if uploaded_file:
+                try:
+                    if uploaded_file.name.endswith('.csv'):
+                        df = pd.read_csv(uploaded_file)
+                        if 'company' in df.columns:
+                            companies_to_search = df['company'].dropna().tolist()
+                        elif 'name' in df.columns:
+                            companies_to_search = df['name'].dropna().tolist()
+                        else:
+                            companies_to_search = df.iloc[:, 0].dropna().tolist()
+                    else:
+                        content = uploaded_file.read().decode('utf-8')
+                        companies_to_search = [line.strip() for line in content.split('\n') if line.strip()]
+                    
+                    st.success(f"📄 Loaded {len(companies_to_search)} companies from file")
+                except Exception as e:
+                    st.error(f"Error reading file: {str(e)}")
+        
+        # Display companies to be processed
+        if companies_to_search:
+            st.markdown(f"### 🎯 Companies to Process ({len(companies_to_search)})")
+            
+            with st.expander("📋 Company List Preview"):
+                for i, company in enumerate(companies_to_search[:20], 1):
+                    st.text(f"{i}. {company}")
+                if len(companies_to_search) > 20:
+                    st.text(f"... and {len(companies_to_search) - 20} more")
+        
+        # Action buttons
+        col1, col2, col3 = st.columns([2, 1, 1], gap="large")
+        
+        with col1:
+            if st.button("🚀 Extract Business Data", type="primary", use_container_width=True, 
+                        disabled=st.session_state.google_maps_running or not companies_to_search):
+                if not companies_to_search:
+                    display_status_card("warning", "Please provide company names to extract", "⚠️")
+                else:
+                    st.session_state.google_maps_running = True
+                    
+                    # Progress tracking
+                    progress_container = st.container()
+                    with progress_container:
+                        progress_bar = st.progress(0)
+                        status_text = st.empty()
+                        
+                        try:
+                            def progress_update(progress):
+                                progress_bar.progress(progress)
+                            
+                            def status_update(status):
+                                status_text.text(f"🗺️ {status}")
+                            
+                            with st.spinner("🗺️ Extracting business data from Google Maps..."):
+                                results = google_extractor.extract_business_data(
+                                    business_names=companies_to_search,
+                                    location=location,
+                                    progress_callback=progress_update,
+                                    status_callback=status_update
+                                )
+                                
+                                progress_bar.progress(1.0)
+                                status_text.text("✅ Business data extraction completed!")
+                                
+                                if results:
+                                    st.session_state.google_maps_results = results
+                                    
+                                    # Save to database if requested
+                                    if save_to_db:
+                                        inserted_count = db_manager.insert_google_maps_businesses(results, current_user_id)
+                                        display_status_card("success", 
+                                            f"🎉 Extraction complete! Found {len(results)} business locations" + 
+                                            f" • {inserted_count} saved to database", "🚀")
+                                    else:
+                                        display_status_card("success", 
+                                            f"🎉 Extraction complete! Found {len(results)} business locations", "🚀")
+                                else:
+                                    display_status_card("warning", "No business data found for the provided companies", "⚠️")
+                        
+                        except Exception as e:
+                            display_status_card("error", f"Extraction error: {str(e)}", "❌")
+                        
+                        finally:
+                            st.session_state.google_maps_running = False
+                            st.rerun()
+        
+        with col2:
+            if st.session_state.google_maps_results:
+                # Create Excel download
+                businesses_df = pd.DataFrame(st.session_state.google_maps_results)
+                excel_data = create_download_link(businesses_df, "Google_Maps_Business_Data.xlsx")
+                
+                st.download_button(
+                    label="📥 Download Excel",
+                    data=excel_data,
+                    file_name="Google_Maps_Business_Data.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True
+                )
+        
+        with col3:
+            if st.session_state.google_maps_results:
+                if st.button("🔄 Clear Results", use_container_width=True):
+                    st.session_state.google_maps_results = None
+                    st.rerun()
+        
+        # Display results
+        if st.session_state.google_maps_results:
+            st.markdown('<div class="section-header">📋 Business Extraction Results</div>', unsafe_allow_html=True)
+            
+            businesses_df = pd.DataFrame(st.session_state.google_maps_results)
+            
+            # Results summary
+            col1, col2, col3, col4 = st.columns(4)
+            with col1:
+                st.metric("🏢 Total Businesses", len(businesses_df))
+            with col2:
+                with_phone = len(businesses_df[businesses_df['phone'] != '']) if 'phone' in businesses_df.columns else 0
+                st.metric("📞 With Phone", with_phone)
+            with col3:
+                with_website = len(businesses_df[businesses_df['website'] != '']) if 'website' in businesses_df.columns else 0
+                st.metric("🌐 With Website", with_website)
+            with col4:
+                with_email = len(businesses_df[businesses_df['email'] != '']) if 'email' in businesses_df.columns else 0
+                st.metric("📧 With Email", with_email)
+            
+            # Category breakdown
+            if 'category' in businesses_df.columns:
+                st.markdown("### 📊 Business Categories")
+                category_counts = businesses_df['category'].value_counts().head(10)
+                if not category_counts.empty:
+                    st.bar_chart(category_counts)
+            
+            # Display main data table
+            display_columns = ['business_name', 'phone', 'website', 'email', 'address', 'city', 'state', 'rating']
+            available_columns = [col for col in display_columns if col in businesses_df.columns]
+            
+            if available_columns:
+                st.dataframe(
+                    businesses_df[available_columns],
+                    use_container_width=True,
+                    hide_index=True
+                )
+            else:
+                st.dataframe(businesses_df, use_container_width=True, hide_index=True)
+            
+            # Detailed view
+            with st.expander("🔍 Complete Business Data"):
+                st.dataframe(businesses_df, use_container_width=True, hide_index=True)
+        
+        # Show database statistics
+        st.markdown('<div class="section-header">📊 Database Statistics</div>', unsafe_allow_html=True)
+        
+        try:
+            gmaps_stats = db_manager.get_google_maps_statistics(current_user_id)
+            
+            if gmaps_stats['total_businesses'] > 0:
+                col1, col2, col3, col4 = st.columns(4)
+                
+                with col1:
+                    st.metric("📊 Total in DB", gmaps_stats['total_businesses'])
+                with col2:
+                    st.metric("📞 Phone %", f"{gmaps_stats['phone_percentage']:.1f}%")
+                with col3:
+                    st.metric("🌐 Website %", f"{gmaps_stats['website_percentage']:.1f}%")
+                with col4:
+                    st.metric("📧 Email %", f"{gmaps_stats['email_percentage']:.1f}%")
+                
+                # Clear database button
+                if st.button("🗑️ Clear Google Maps Data", type="secondary"):
+                    db_manager.clear_google_maps_data(current_user_id)
+                    display_status_card("success", "Google Maps data cleared successfully!", "✨")
+                    st.rerun()
+            else:
+                st.info("No Google Maps business data in database yet. Extract some businesses to see statistics!")
+        
+        except Exception as e:
+            st.error(f"Error loading statistics: {str(e)}")
         
         st.markdown('</div>', unsafe_allow_html=True)
 

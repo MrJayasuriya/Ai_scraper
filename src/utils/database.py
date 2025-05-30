@@ -81,6 +81,42 @@ class DatabaseManager:
                 )
             """)
             
+            # Create google_maps_businesses table for business extraction
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS google_maps_businesses (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER,
+                    business_name TEXT,
+                    original_query TEXT,
+                    place_id TEXT,
+                    phone TEXT,
+                    website TEXT,
+                    email TEXT,
+                    address TEXT,
+                    city TEXT,
+                    state TEXT,
+                    zip_code TEXT,
+                    country TEXT,
+                    latitude REAL,
+                    longitude REAL,
+                    category TEXT,
+                    rating REAL,
+                    review_count INTEGER,
+                    price_level TEXT,
+                    business_status TEXT,
+                    hours TEXT,
+                    permanently_closed BOOLEAN,
+                    google_maps_url TEXT,
+                    plus_code TEXT,
+                    claimed BOOLEAN,
+                    extraction_date TIMESTAMP,
+                    data_source TEXT,
+                    raw_data TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users (id)
+                )
+            """)
+            
             # Add user_id column to existing search_results if it doesn't exist
             try:
                 cursor.execute("SELECT user_id FROM search_results LIMIT 1")
@@ -426,10 +462,118 @@ class DatabaseManager:
                     )
                 """, [user_id])
                 cursor.execute("DELETE FROM search_results WHERE user_id = ?", [user_id])
+                cursor.execute("DELETE FROM google_maps_businesses WHERE user_id = ?", [user_id])
             else:
                 # Clear all data (backward compatibility)
                 cursor.execute("DELETE FROM scraped_contacts")
                 cursor.execute("DELETE FROM search_results")
+                cursor.execute("DELETE FROM google_maps_businesses")
+            conn.commit()
+
+    # Google Maps Business Data Methods
+    def insert_google_maps_businesses(self, businesses: List[Dict], user_id: int) -> int:
+        """Insert Google Maps business data into the database"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            inserted_count = 0
+            
+            for business in businesses:
+                try:
+                    cursor.execute("""
+                        INSERT OR REPLACE INTO google_maps_businesses 
+                        (user_id, business_name, original_query, place_id, phone, website, email, 
+                         address, city, state, zip_code, country, latitude, longitude, category, 
+                         rating, review_count, price_level, business_status, hours, permanently_closed,
+                         google_maps_url, plus_code, claimed, extraction_date, data_source, raw_data)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        user_id,
+                        business.get('business_name'),
+                        business.get('original_query'),
+                        business.get('place_id'),
+                        business.get('phone'),
+                        business.get('website'),
+                        business.get('email'),
+                        business.get('address'),
+                        business.get('city'),
+                        business.get('state'),
+                        business.get('zip_code'),
+                        business.get('country'),
+                        business.get('latitude'),
+                        business.get('longitude'),
+                        business.get('category'),
+                        business.get('rating'),
+                        business.get('review_count'),
+                        business.get('price_level'),
+                        business.get('business_status'),
+                        business.get('hours'),
+                        business.get('permanently_closed'),
+                        business.get('google_maps_url'),
+                        business.get('plus_code'),
+                        business.get('claimed'),
+                        business.get('extraction_date'),
+                        business.get('data_source'),
+                        business.get('raw_data')
+                    ))
+                    if cursor.rowcount > 0:
+                        inserted_count += 1
+                except Exception as e:
+                    print(f"Error inserting business: {e}")
+            
+            conn.commit()
+            return inserted_count
+    
+    def get_google_maps_businesses(self, user_id: int) -> pd.DataFrame:
+        """Get all Google Maps business data for a user"""
+        with sqlite3.connect(self.db_path) as conn:
+            query = """
+                SELECT * FROM google_maps_businesses 
+                WHERE user_id = ? 
+                ORDER BY created_at DESC
+            """
+            return pd.read_sql_query(query, conn, params=[user_id])
+    
+    def get_google_maps_statistics(self, user_id: int) -> Dict:
+        """Get Google Maps business extraction statistics"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            
+            cursor.execute("SELECT COUNT(*) FROM google_maps_businesses WHERE user_id = ?", [user_id])
+            total_businesses = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT COUNT(*) FROM google_maps_businesses WHERE user_id = ? AND phone != ''", [user_id])
+            with_phone = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT COUNT(*) FROM google_maps_businesses WHERE user_id = ? AND website != ''", [user_id])
+            with_website = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT COUNT(*) FROM google_maps_businesses WHERE user_id = ? AND email != ''", [user_id])
+            with_email = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT COUNT(*) FROM google_maps_businesses WHERE user_id = ? AND address != ''", [user_id])
+            with_address = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT COUNT(DISTINCT original_query) FROM google_maps_businesses WHERE user_id = ?", [user_id])
+            unique_queries = cursor.fetchone()[0]
+            
+            return {
+                'total_businesses': total_businesses,
+                'with_phone': with_phone,
+                'with_website': with_website,
+                'with_email': with_email,
+                'with_address': with_address,
+                'unique_queries': unique_queries,
+                'phone_percentage': (with_phone / total_businesses) * 100 if total_businesses > 0 else 0,
+                'website_percentage': (with_website / total_businesses) * 100 if total_businesses > 0 else 0,
+                'email_percentage': (with_email / total_businesses) * 100 if total_businesses > 0 else 0,
+                'address_percentage': (with_address / total_businesses) * 100 if total_businesses > 0 else 0
+            }
+    
+    def clear_google_maps_data(self, user_id: int):
+        """Clear Google Maps business data for a user"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM google_maps_businesses WHERE user_id = ?", [user_id])
             conn.commit()
 
 # Create global database manager instance
