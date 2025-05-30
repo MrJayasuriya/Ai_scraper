@@ -1,170 +1,304 @@
-# AI Contact Scraper Pro
+# AI Contact Scraper Pro 🤖
 
-An advanced web scraping tool that uses artificial intelligence to extract contact information from websites. The application features a two-stage workflow: web search using Serper API and AI-powered contact extraction.
+Advanced AI-powered contact scraping tool with beautiful Streamlit interface and comprehensive authentication system.
 
-## Features
+## ✨ Features
 
-🔍 **Web Search**: Find businesses using Serper API Search API  
-🗄️ **Database Storage**: Store search results in SQLite database  
-🎯 **AI Contact Extraction**: Extract names, phone numbers, and emails using AI  
-📊 **Analytics Dashboard**: Comprehensive insights and statistics  
-📥 **Excel Export**: Download results in Excel format  
-🚀 **Real-time Processing**: Live progress updates during extraction  
+### 🔐 User Authentication
+- **Secure Signup/Login**: Create personal accounts with encrypted passwords
+- **Session Management**: 30-day secure sessions with automatic cleanup
+- **Data Isolation**: Each user has their own private data space
+- **Input Validation**: Real-time validation for usernames, emails, and passwords
 
-## Workflow
+### 🎯 Intelligent Contact Extraction
+- AI-powered contact extraction using OpenRouter GPT models
+- Retry mechanism with exponential backoff
+- Concurrent processing for better performance
+- Comprehensive contact details extraction (names, phones, emails)
 
-1. **Web Search Tab**: Search for businesses using Serper API and store results in SQLite database
-2. **Contact Scraping Tab**: Process stored links to extract contact details using AI
-3. **Results & Analytics Tab**: View, filter, and download extracted data
+### 🔍 Smart Business Search
+- Google Search integration via Serper API
+- Local business discovery
+- Comprehensive business information collection
+- Rating and review data extraction
 
-## Setup
+### 📊 Advanced Analytics
+- Real-time statistics dashboard
+- Performance metrics and success rates
+- Interactive charts and visualizations
+- User-specific analytics
 
-### 1. Install Dependencies
+### 💾 Data Management
+- SQLite database with automatic migrations
+- Excel export functionality
+- Advanced filtering and search
+- Secure data isolation per user
 
+## 🚀 Quick Start
+
+### Prerequisites
+
+1. **Python 3.8+** installed on your system
+2. **API Keys** (create `.env` file in the `Ai_scraper` directory):
+   ```env
+   SERPER_API_KEY=your_serper_api_key_here
+   OPENROUTER_API_KEY=your_openrouter_api_key_here
+   OPENROUTER_MODEL=openai/gpt-3.5-turbo-0613
+   OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+   ```
+
+### Installation
+
+1. **Clone or Download** the project
+2. **Navigate** to the `Ai_scraper` directory:
+   ```bash
+   cd Ai_scraper
+   ```
+3. **Install Dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+### Running the Application
+
+#### Option 1: Easy Start (Recommended)
+**Windows:** Double-click `start_app.bat`
+**All Systems:** 
 ```bash
-pip install -r requirements.txt
+python start_app.py
 ```
 
-### 2. Environment Variables
-
-Create a `.env` file in the project root with the following variables:
-
-```env
-# OpenRouter API Key (Required for AI-powered contact extraction)
-# Get your key from: https://openrouter.ai/
-OPENROUTER_API_KEY=your_openrouter_api_key_here
-
-# Serper API Key (Required for web search functionality) 
-# Get your key from: https://serper.dev/
-SERPER_API_KEY=your_serper_api_key_here
-
-# Optional OpenRouter Configuration
-OPENROUTER_MODEL=openai/gpt-3.5-turbo-0613
-OPENROUTER_TEMPERATURE=0.0
-OPENROUTER_SITE_URL=https://your-site.com
-OPENROUTER_SITE_NAME=AI Contact Scraper Pro
+#### Option 2: Manual Start
+```bash
+cd Ai_scraper
+streamlit run streamlit_app.py
 ```
 
-### 3. Run the Application
-
+#### Option 3: Direct Streamlit
 ```bash
 streamlit run streamlit_app.py
 ```
 
-## Usage
+### First Time Setup
 
-### Web Search Tab
+1. **Open your browser** to `http://localhost:8501`
+2. **Create an account** using the signup form
+3. **Login** with your credentials
+4. **Start searching** for businesses!
 
-1. Enter a search query (e.g., "dental clinics", "restaurants")
-2. Specify a location (e.g., "New York, NY")
-3. Set the number of results to fetch
-4. Click "Search" to find businesses and store them in the database
+## 📱 User Interface
 
-### Contact Scraping Tab
+### Authentication Screen
+- **Modern Design**: Glassmorphism UI with premium styling
+- **Login/Signup Toggle**: Easy switching between forms
+- **Real-time Validation**: Instant feedback on form inputs
+- **Auto-login**: Automatic login after successful signup
 
-1. View the count of unscraped links from your previous searches
-2. Click "Start Scraping" to begin AI-powered contact extraction
-3. Monitor real-time progress as contacts are extracted
-4. Results are automatically stored in the database
+### Main Dashboard
+- **User Info Sidebar**: Shows current user and logout option
+- **API Status Cards**: Real-time API connection status
+- **Analytics Overview**: Personal statistics and metrics
+- **Data Management**: Clear personal data functionality
 
-### Results & Analytics Tab
+### Three Main Tabs
 
-1. View comprehensive analytics and statistics
-2. Filter results by status, contact type, or search query
-3. Download complete results in Excel format
-4. Analyze extraction success rates and contact distribution
+#### 🔍 Intelligent Search
+- Business type and location input
+- Configurable result count
+- Real-time search progress
+- Results preview and database storage
 
-## Database Schema
+#### 🎯 AI Extraction
+- View queued links for processing
+- Start AI-powered contact extraction
+- Real-time progress tracking
+- Enhanced vs standard scraper options
 
-The application uses SQLite with two main tables:
+#### 📊 Analytics Center
+- Comprehensive data visualization
+- Advanced filtering options
+- Excel export functionality
+- Performance metrics and charts
 
-### search_results
-- Stores business information from web searches
-- Tracks which links have been processed for contact extraction
+## 🔐 Authentication System
 
-### scraped_contacts
-- Stores extracted contact information
-- Links to search results via foreign key relationship
+### Security Features
+- **Password Hashing**: SHA-256 with salt
+- **Session Tokens**: Cryptographically secure 64-character tokens
+- **Automatic Cleanup**: Expired sessions are cleaned automatically
+- **Input Validation**: Comprehensive validation for all user inputs
 
-## API Requirements
+### User Requirements
+**Username:**
+- 3-30 characters
+- Letters, numbers, and underscores only
 
-### OpenRouter API
-- Used for AI-powered contact extraction
-- Supports multiple LLM models
-- Sign up at: https://openrouter.ai/
+**Password:**
+- Minimum 8 characters
+- At least one uppercase letter
+- At least one lowercase letter
+- At least one number
 
-### Serper API
-- Used for Google search functionality
-- Provides business listings and contact information
-- Sign up at: https://serper.dev/
+**Email:**
+- Valid email format
+- Used for login (alternative to username)
 
-## Architecture
+### Data Isolation
+- Each user sees only their own data
+- Search results are user-specific
+- Analytics are calculated per user
+- Data export includes only user's data
 
+## 🛠️ Technical Details
+
+### Architecture
 ```
-streamlit_app.py     # Main Streamlit interface
-├── database.py      # SQLite database operations
-├── serper_api.py    # Serper Google Search API integration
-├── scrape_ai.py     # AI-powered contact extraction
-└── llm_services.py  # OpenRouter LLM service management
+Ai_scraper/
+├── streamlit_app.py         # Main Streamlit application
+├── start_app.py            # Easy start script
+├── start_app.bat           # Windows batch file
+├── src/
+│   ├── utils/
+│   │   ├── database.py     # Database management + auth
+│   │   ├── auth.py         # Authentication manager
+│   │   └── llm_services.py # LLM service management
+│   └── services/
+│       ├── serper_api.py   # Google Search API
+│       └── scrape_ai_enhanced.py # AI-powered scraper
+├── requirements.txt        # Python dependencies
+├── .env                   # API keys (create this)
+└── scraper_data.db       # SQLite database (auto-created)
 ```
 
-## Technology Stack
+### Database Schema
+```sql
+-- Authentication tables
+users (id, username, email, password_hash, salt, created_at, last_login, is_active)
+user_sessions (id, user_id, session_token, created_at, expires_at, is_active)
 
-- **Frontend**: Streamlit with custom CSS
-- **Database**: SQLite3
-- **AI/LLM**: OpenRouter GPT-3.5-turbo
-- **Web Search**: Serper Google Search API
-- **Web Scraping**: ScrapeGraphAI with Playwright
-- **Data Processing**: Pandas
-- **Visualization**: Plotly
+-- Data tables (with user isolation)
+search_results (id, user_id, original_query, original_location, title, link, ...)
+scraped_contacts (id, search_result_id, scraped_names, scraped_phones, ...)
+```
 
-## Troubleshooting
+### API Integration
+- **Serper API**: Google Search functionality
+- **OpenRouter API**: GPT models for contact extraction
+- **ScrapeGraphAI**: Web scraping with Playwright
+
+## 🔧 Configuration
+
+### Environment Variables
+```env
+# Required APIs
+SERPER_API_KEY=your_key_here
+OPENROUTER_API_KEY=your_key_here
+
+# Optional Configuration
+OPENROUTER_MODEL=openai/gpt-3.5-turbo-0613
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+MAX_CONCURRENT_SCRAPES=3
+SCRAPE_DELAY_SECONDS=1.0
+MAX_RETRIES=2
+```
+
+### Customization
+- Modify CSS in `streamlit_app.py` for UI changes
+- Adjust scraper settings in `scrape_ai_enhanced.py`
+- Update database schema in `database.py`
+
+## 🚨 Troubleshooting
 
 ### Common Issues
 
-1. **API Keys Not Working**
-   - Verify your API keys are correct in the `.env` file
-   - Check API key permissions and quotas
+1. **Import Errors**
+   ```bash
+   # Make sure you're in the Ai_scraper directory
+   cd Ai_scraper
+   streamlit run streamlit_app.py
+   ```
 
-2. **No Search Results**
-   - Try different search queries or locations
-   - Check Serper API quota and status
+2. **API Key Issues**
+   - Check `.env` file exists in `Ai_scraper` directory
+   - Verify API keys are correct and active
+   - Check API quotas and limits
 
-3. **Contact Extraction Failing**
-   - Verify OpenRouter API key and model availability
-   - Some websites may block automated access
+3. **Database Issues**
+   - Delete `scraper_data.db` to reset
+   - Use "Clear My Data" in the sidebar
+   - Check file permissions
 
-4. **Database Issues**
-   - Delete `scraper_data.db` to reset the database
-   - Use the "Clear All Data" button in the sidebar
+4. **Authentication Problems**
+   - Try clearing browser cache
+   - Use different browser/incognito mode
+   - Check session expiration (30 days)
 
-### Windows Users
+### Windows Specific
+- Use `start_app.bat` for easiest startup
+- Ensure Python is in PATH
+- May need to run as administrator
 
-The application includes fixes for Windows asyncio issues. If you encounter problems:
+### Error Messages
+- **"No module named 'src'"**: Run from `Ai_scraper` directory
+- **"API not configured"**: Check `.env` file
+- **"Session expired"**: Login again
 
-```python
-import asyncio
-import platform
+## 📊 Performance
 
-if platform.system() == 'Windows':
-    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
-```
+### Optimization Features
+- **Concurrent Processing**: Multiple links processed simultaneously
+- **Retry Mechanism**: Automatic retry with exponential backoff
+- **Rate Limiting**: Respectful delays between requests
+- **Caching**: Session-based caching for better performance
 
-## Contributing
+### Recommended Settings
+- Max Concurrent Scrapes: 3-5
+- Delay Between Requests: 1-2 seconds
+- Max Retries: 2-3
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+## 🆕 What's New in This Version
 
-## License
+### Authentication System
+- Complete user management with signup/login
+- Secure password hashing and session management
+- Personal data spaces for each user
+- Beautiful authentication UI
+
+### Enhanced Security
+- SQL injection protection
+- Session token validation
+- Input sanitization
+- Automatic session cleanup
+
+### Improved User Experience
+- Modern glassmorphism design
+- Real-time validation feedback
+- User-specific analytics
+- Simplified startup process
+
+### Backward Compatibility
+- All existing functionality preserved
+- Existing data remains accessible
+- No breaking changes to core features
+
+## 📝 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Support
+## 🤝 Support
 
 For issues and questions:
-1. Check the troubleshooting section
-2. Review API documentation
-3. Create an issue on GitHub 
+1. Check the troubleshooting section above
+2. Review the authentication documentation in `AUTHENTICATION.md`
+3. Verify API keys and configuration
+4. Create an issue on GitHub
+
+## 🎯 Future Enhancements
+
+Planned features for future releases:
+- Password reset functionality
+- Email verification
+- User roles and permissions
+- Advanced user settings
+- Two-factor authentication
+- API rate limit dashboard 

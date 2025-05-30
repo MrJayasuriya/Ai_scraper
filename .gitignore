@@ -6,6 +6,8 @@ __pycache__/
 # C extensions
 *.so
 scraper_data.db
+scraper_data.db
+
 # Distribution / packaging
 .Python
 build/
