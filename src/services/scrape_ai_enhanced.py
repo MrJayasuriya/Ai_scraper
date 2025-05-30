@@ -10,8 +10,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, List, Optional, Callable
 from dotenv import load_dotenv
 from scrapegraphai.graphs import SmartScraperGraph
-from Ai_scraper.src.utils.llm_services import get_service
-from Ai_scraper.src.utils.database import db_manager
+from ..utils.llm_services import get_service
+from ..utils.database import db_manager
 
 load_dotenv()
 
@@ -174,11 +174,11 @@ def scrape_single_link_with_retry(link: str, search_result_id: int, max_retries:
                     'error': error_msg
                 }
 
-def process_links_concurrent(progress_callback=None, status_callback=None, max_workers: int = MAX_CONCURRENT_SCRAPES):
+def process_links_concurrent(progress_callback=None, status_callback=None, max_workers: int = MAX_CONCURRENT_SCRAPES, user_id: int = None):
     """Process links with concurrent execution for better performance"""
     
     # Get unscraped links from database
-    data = db_manager.get_unscraped_links()
+    data = db_manager.get_unscraped_links(user_id)
     
     if data.empty:
         print("No unscraped links found in database")
@@ -251,18 +251,18 @@ def process_links_concurrent(progress_callback=None, status_callback=None, max_w
     
     return successful_extractions
 
-def process_links_from_database(progress_callback=None, status_callback=None, use_concurrent=True):
+def process_links_from_database(progress_callback=None, status_callback=None, use_concurrent=True, user_id: int = None):
     """Process all unscraped links from the database with enhanced features"""
     
     if use_concurrent and MAX_CONCURRENT_SCRAPES > 1:
-        return process_links_concurrent(progress_callback, status_callback)
+        return process_links_concurrent(progress_callback, status_callback, MAX_CONCURRENT_SCRAPES, user_id)
     else:
         # Fallback to sequential processing
-        return _process_links_sequential(progress_callback, status_callback)
+        return _process_links_sequential(progress_callback, status_callback, user_id)
 
-def _process_links_sequential(progress_callback=None, status_callback=None):
+def _process_links_sequential(progress_callback=None, status_callback=None, user_id: int = None):
     """Sequential processing fallback"""
-    data = db_manager.get_unscraped_links()
+    data = db_manager.get_unscraped_links(user_id)
     
     if data.empty:
         print("No unscraped links found in database")
@@ -297,9 +297,9 @@ def _process_links_sequential(progress_callback=None, status_callback=None):
     
     return successful_extractions
 
-def get_results_for_download():
+def get_results_for_download(user_id: int = None):
     """Get all results formatted for Excel download"""
-    results_df = db_manager.get_all_search_results()
+    results_df = db_manager.get_all_search_results(user_id)
     
     # Reorder columns for better readability
     column_order = ['original_query', 'original_location', 'title', 'link', 
