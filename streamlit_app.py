@@ -852,6 +852,139 @@ def create_download_link(df, filename):
     excel_data = output.getvalue()
     return excel_data
 
+def create_jobs_excel_download(jobs_data, filename, job_query="", job_location=""):
+    """Create a properly formatted Excel file for JSearch job data with organized columns"""
+    if not jobs_data:
+        return None
+    
+    # Convert to DataFrame
+    jobs_df = pd.DataFrame(jobs_data)
+    
+    # Define the column mapping and order for clean Excel export
+    excel_columns = {
+        # Basic Job Information
+        'Job Title': 'job_title',
+        'Company': 'employer_name', 
+        'Company Logo': 'employer_logo',
+        'Employment Type': 'job_employment_type',
+        'Job Category': 'job_category',
+        
+        # Location Information
+        'Location (City)': 'job_city',
+        'Location (State)': 'job_state', 
+        'Location (Country)': 'job_country',
+        'Is Remote': 'job_is_remote',
+        
+        # Salary Information
+        'Min Salary (USD)': 'job_salary_min',
+        'Max Salary (USD)': 'job_salary_max',
+        'Salary Period': 'job_salary_period',
+        'Salary Currency': 'job_salary_currency',
+        
+        # Job Details
+        'Job Description': 'job_description',
+        'Experience Required': 'job_required_experience',
+        'Education Required': 'job_required_education',
+        'Skills Required': 'job_required_skills',
+        
+        # Application Information
+        'Apply Link': 'job_apply_link',
+        'Application Deadline': 'job_offer_expiration_datetime_utc',
+        'Posted Date': 'job_posted_at_datetime_utc',
+        'Posted Date (Human)': 'job_posted_at_human',
+        
+        # Company Information
+        'Company Website': 'employer_website',
+        'Company Type': 'employer_company_type',
+        'Company Reviews': 'employer_reviews',
+        
+        # Additional Information
+        'Job ID': 'job_id',
+        'Job Publisher': 'job_publisher',
+        'Job Benefits': 'job_benefits',
+        'Job Highlights': 'job_highlights'
+    }
+    
+    # Create organized DataFrame with proper column names
+    organized_data = {}
+    
+    for excel_col, api_col in excel_columns.items():
+        if api_col in jobs_df.columns:
+            # Clean and format the data
+            column_data = jobs_df[api_col].copy()
+            
+            # Special formatting for specific columns
+            if api_col == 'job_is_remote':
+                column_data = column_data.map({True: 'Yes', False: 'No', None: 'Unknown'})
+            elif api_col in ['job_salary_min', 'job_salary_max']:
+                column_data = column_data.fillna('Not specified')
+            elif api_col == 'job_description':
+                # Limit description length for Excel readability
+                column_data = column_data.astype(str).apply(lambda x: x[:500] + '...' if len(str(x)) > 500 else x)
+            elif api_col in ['job_posted_at_datetime_utc', 'job_offer_expiration_datetime_utc']:
+                # Format dates properly
+                column_data = pd.to_datetime(column_data, errors='coerce').dt.strftime('%Y-%m-%d %H:%M:%S')
+            elif api_col in ['job_benefits', 'job_highlights', 'job_required_skills']:
+                # Handle lists/arrays
+                column_data = column_data.apply(lambda x: '; '.join(x) if isinstance(x, list) else str(x) if x else '')
+            
+            organized_data[excel_col] = column_data
+        else:
+            # Add empty column if data not available
+            organized_data[excel_col] = [''] * len(jobs_df)
+    
+    # Create final DataFrame
+    excel_df = pd.DataFrame(organized_data)
+    
+    # Add metadata sheet information
+    metadata = {
+        'Search Query': [job_query],
+        'Search Location': [job_location], 
+        'Total Jobs Found': [len(jobs_df)],
+        'Export Date': [pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')],
+        'Data Source': ['JSearch API'],
+        'Companies Found': [excel_df['Company'].nunique()],
+        'Remote Jobs': [len(excel_df[excel_df['Is Remote'] == 'Yes'])],
+        'With Salary Info': [len(excel_df[(excel_df['Min Salary (USD)'] != 'Not specified') | 
+                                        (excel_df['Max Salary (USD)'] != 'Not specified')])]
+    }
+    metadata_df = pd.DataFrame(metadata)
+    
+    # Create Excel file with multiple sheets
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        # Write main jobs data
+        excel_df.to_excel(writer, sheet_name='Jobs_Data', index=False)
+        
+        # Write metadata
+        metadata_df.to_excel(writer, sheet_name='Search_Info', index=False)
+        
+        # Format the main sheet
+        workbook = writer.book
+        worksheet = writer.sheets['Jobs_Data']
+        
+        # Auto-adjust column widths
+        for column_cells in worksheet.columns:
+            length = max(len(str(cell.value)) for cell in column_cells)
+            worksheet.column_dimensions[column_cells[0].column_letter].width = min(length + 2, 50)
+        
+        # Add header formatting
+        from openpyxl.styles import Font, PatternFill, Alignment
+        
+        header_font = Font(bold=True, color='FFFFFF')
+        header_fill = PatternFill(start_color='366092', end_color='366092', fill_type='solid')
+        header_alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        
+        for cell in worksheet[1]:
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_alignment
+        
+        # Freeze the header row
+        worksheet.freeze_panes = 'A2'
+    
+    return output.getvalue()
+
 def display_status_card(status_type, message, icon=""):
     """Display a premium status card"""
     st.markdown(f"""
@@ -1074,7 +1207,7 @@ def main():
         
         # Database management with premium styling
         st.markdown('<div class="section-header">🗄️ Data Management</div>', unsafe_allow_html=True)
-        if st.button("🗑️ Clear My Data", type="secondary", use_container_width=True):
+        if st.button("🗑️ Clear My Data", type="secondary", use_container_width=True, key="sidebar_clear_data"):
             db_manager.clear_all_data(current_user_id)
             display_status_card("success", "Your data cleared successfully!", "✨")
             st.rerun()
@@ -1117,7 +1250,7 @@ def main():
             )
         
         with col2:
-            if st.button("🚀 Launch Search", type="primary", use_container_width=True):
+            if st.button("🚀 Launch Search", type="primary", use_container_width=True, key="search_launch_btn"):
                 if search_query and location:
                     with st.spinner("🔍 Conducting intelligent search..."):
                         try:
@@ -1189,7 +1322,7 @@ def main():
                 display_status_card("info", "Standard AI Engine Active", "🤖")
         
         with col3:
-            if st.button("🚀 Start AI Extraction", type="primary", use_container_width=True, disabled=unscraped_count == 0):
+            if st.button("🚀 Start AI Extraction", type="primary", use_container_width=True, disabled=unscraped_count == 0, key="ai_extraction_btn"):
                 # Premium progress interface
                 progress_container = st.container()
                 with progress_container:
@@ -1577,7 +1710,7 @@ def main():
         
         with col1:
             if st.button("🚀 Search Jobs", type="primary", use_container_width=True, 
-                        disabled=st.session_state.job_scraper_running):
+                        disabled=st.session_state.job_scraper_running, key="job_search_btn"):
                 if not job_query.strip():
                     display_status_card("warning", "Please enter a job title or keywords", "⚠️")
                 elif not job_location.strip():
@@ -1696,21 +1829,26 @@ def main():
         
         with col2:
             if st.session_state.job_scraper_results:
-                # Create Excel download
-                jobs_df = pd.DataFrame(st.session_state.job_scraper_results)
-                excel_data = create_download_link(jobs_df, f"JSearch_Jobs_{job_query.replace(' ', '_')}.xlsx")
+                # Create Excel download with enhanced formatting
+                excel_data = create_jobs_excel_download(
+                    st.session_state.job_scraper_results, 
+                    f"JSearch_Jobs_{job_query.replace(' ', '_')}.xlsx", 
+                    job_query, 
+                    job_location
+                )
                 
                 st.download_button(
                     label="📥 Download Excel",
                     data=excel_data,
                     file_name=f"JSearch_Jobs_{job_query.replace(' ', '_')}.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    use_container_width=True
+                    use_container_width=True,
+                    help="Download professionally formatted Excel with organized columns and metadata"
                 )
         
         with col3:
             if st.session_state.job_scraper_results:
-                if st.button("🔄 Clear Results", use_container_width=True):
+                if st.button("🔄 Clear Results", use_container_width=True, key="job_clear_results_btn"):
                     st.session_state.job_scraper_results = None
                     st.rerun()
         
@@ -1719,6 +1857,20 @@ def main():
             st.markdown('<div class="section-header">📋 Job Search Results</div>', unsafe_allow_html=True)
             
             jobs_df = pd.DataFrame(st.session_state.job_scraper_results)
+            
+            # Excel Format Info
+            st.markdown("""
+            <div style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(59, 130, 246, 0.1)); 
+                        border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 12px; padding: 1rem; margin: 1rem 0;">
+                <h4 style="color: #22c55e; margin: 0 0 0.5rem 0;">📊 Excel Export Features</h4>
+                <p style="color: rgba(255, 255, 255, 0.8); margin: 0;">
+                    <strong>✅ Professional formatting</strong> with organized columns<br>
+                    <strong>✅ Two sheets:</strong> Jobs_Data + Search_Info metadata<br>
+                    <strong>✅ Clean column names:</strong> Job Title, Company, Salary, Location, etc.<br>
+                    <strong>✅ Auto-sized columns</strong> and formatted headers
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
             
             # Results summary
             col1, col2, col3, col4 = st.columns(4)
@@ -1804,6 +1956,29 @@ def main():
             with st.expander("🔍 Complete Job Data"):
                 st.dataframe(jobs_df, use_container_width=True, hide_index=True)
             
+            # Excel Preview
+            with st.expander("📊 Excel Export Preview - Column Structure"):
+                excel_columns_info = {
+                    'Section': ['Basic Info', 'Basic Info', 'Basic Info', 'Basic Info', 'Location', 'Location', 'Location', 'Location', 
+                               'Salary', 'Salary', 'Salary', 'Application', 'Application', 'Application', 'Company', 'Company'],
+                    'Excel Column Name': ['Job Title', 'Company', 'Employment Type', 'Job Category', 'Location (City)', 'Location (State)', 
+                                         'Location (Country)', 'Is Remote', 'Min Salary (USD)', 'Max Salary (USD)', 'Salary Period', 
+                                         'Apply Link', 'Posted Date', 'Application Deadline', 'Company Website', 'Company Type'],
+                    'Description': ['Job position title', 'Employer company name', 'Full-time/Part-time/Contract', 'Job category/industry',
+                                   'City where job is located', 'State/province location', 'Country location', 'Remote work availability',
+                                   'Minimum salary range', 'Maximum salary range', 'Annual/Monthly/Hourly', 'Direct application URL',
+                                   'When job was posted', 'Application deadline', 'Company official website', 'Company size/type']
+                }
+                excel_preview_df = pd.DataFrame(excel_columns_info)
+                st.dataframe(excel_preview_df, use_container_width=True, hide_index=True)
+                
+                st.info(f"""
+                **📋 Your Excel file will contain:**
+                - **Jobs_Data sheet**: {len(jobs_df)} jobs with {len(excel_columns_info['Excel Column Name'])}+ organized columns
+                - **Search_Info sheet**: Search metadata (query: "{job_query}", location: "{job_location}")
+                - **Professional formatting**: Headers, auto-sized columns, frozen header row
+                """)
+            
             # JSON view for debugging (separate expander, not nested)
             with st.expander("🔧 Raw JSON Data (for debugging)"):
                 st.json(st.session_state.job_scraper_results[:3])  # Show first 3 jobs
@@ -1819,11 +1994,72 @@ def main():
             st.session_state.google_maps_results = None
         if 'google_maps_running' not in st.session_state:
             st.session_state.google_maps_running = False
+        if 'google_maps_extractor' not in st.session_state:
+            st.session_state.google_maps_extractor = None
+        if 'apify_key_status' not in st.session_state:
+            st.session_state.apify_key_status = None
+        
+        # API Key Configuration Section
+        st.markdown('<div class="section-header">🔑 API Configuration</div>', unsafe_allow_html=True)
         
         # Check if Apify API key is available
         apify_key = os.getenv("APIFY_KEY")
+        
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            if not apify_key:
+                st.markdown("""
+                <div style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(251, 191, 36, 0.1)); 
+                            border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 16px; padding: 1.5rem; margin: 1rem 0;">
+                    <h4 style="color: #f59e0b; margin: 0 0 1rem 0;">⚠️ Apify API Key Required</h4>
+                    <p style="color: rgba(255, 255, 255, 0.8); margin: 0;">
+                        To use Google Maps business extraction, you need an Apify API key.<br>
+                        <strong>Steps:</strong><br>
+                        1. Go to <a href="https://console.apify.com/account/integrations" target="_blank" style="color: #3b82f6;">Apify Console</a><br>
+                        2. Sign up for a free account (includes free credits)<br>
+                        3. Copy your API key<br>
+                        4. Add it to your environment variables as APIFY_KEY
+                    </p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                # Manual API key input
+                manual_key = st.text_input(
+                    "🔑 Or Enter API Key Manually",
+                    type="password",
+                    placeholder="apify_api_xxxxxxxxxxxxxxxxxxxxxxx",
+                    help="Enter your Apify API key for this session"
+                )
+                
+                if manual_key:
+                    apify_key = manual_key
+            else:
+                display_status_card("success", f"Apify API key loaded from environment • {apify_key[:15]}...", "✅")
+        
+        with col2:
+            if apify_key:
+                if st.button("🧪 Test API Key", use_container_width=True, key="gmaps_test_api_btn"):
+                    with st.spinner("Testing API key..."):
+                        from google_maps_extractor import GoogleMapsExtractor
+                        is_valid, message = GoogleMapsExtractor.test_api_key(apify_key)
+                        
+                        if is_valid:
+                            display_status_card("success", f"API key is valid! {message}", "✅")
+                            st.session_state.apify_key_status = "valid"
+                        else:
+                            display_status_card("error", f"API key test failed: {message}", "❌")
+                            st.session_state.apify_key_status = "invalid"
+            
+            # Reset extractor button
+            if st.session_state.google_maps_extractor is not None:
+                if st.button("🔄 Reset Extractor", use_container_width=True, help="Clear current extractor instance", key="gmaps_reset_extractor_btn"):
+                    st.session_state.google_maps_extractor = None
+                    st.session_state.apify_key_status = None
+                    st.rerun()
+        
+        # Only proceed if we have an API key
         if not apify_key:
-            display_status_card("error", "Apify API key configuration required. Please add APIFY_KEY to your environment.", "⚠️")
             st.markdown('</div>', unsafe_allow_html=True)
             return
         
@@ -1839,12 +2075,33 @@ def main():
         </div>
         """, unsafe_allow_html=True)
         
-        # Initialize Google Maps extractor
+        # Initialize Google Maps extractor with better error handling
         try:
-            google_extractor = GoogleMapsExtractor(apify_key)
-            display_status_card("success", "Google Maps extractor ready • Access to comprehensive business data", "✅")
+            if st.session_state.google_maps_extractor is None:
+                with st.spinner("Initializing Google Maps extractor..."):
+                    st.session_state.google_maps_extractor = GoogleMapsExtractor(apify_key)
+                display_status_card("success", "Google Maps extractor ready • Access to comprehensive business data", "✅")
+            google_extractor = st.session_state.google_maps_extractor
         except Exception as e:
-            display_status_card("error", f"Failed to initialize Google Maps extractor: {str(e)}", "❌")
+            error_message = str(e)
+            if "authentication" in error_message.lower() or "invalid api key" in error_message.lower():
+                display_status_card("error", 
+                    f"Authentication failed: {error_message}", "❌")
+                st.markdown("""
+                <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); 
+                            border-radius: 12px; padding: 1rem; margin: 1rem 0;">
+                    <p style="color: #ef4444; margin: 0;">
+                        <strong>🔧 Troubleshooting Steps:</strong><br>
+                        1. Check your API key format (should start with 'apify_api_')<br>
+                        2. Verify your account has sufficient credits<br>
+                        3. Ensure your account can access the Google Maps scraper<br>
+                        4. Try generating a new API key
+                    </p>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                display_status_card("error", f"Failed to initialize extractor: {error_message}", "❌")
+            
             st.markdown('</div>', unsafe_allow_html=True)
             return
         
@@ -1958,7 +2215,7 @@ def main():
         
         with col1:
             if st.button("🚀 Extract Business Data", type="primary", use_container_width=True, 
-                        disabled=st.session_state.google_maps_running or not companies_to_search):
+                        disabled=st.session_state.google_maps_running or not companies_to_search, key="gmaps_extract_btn"):
                 if not companies_to_search:
                     display_status_card("warning", "Please provide company names to extract", "⚠️")
                 else:
@@ -2026,7 +2283,7 @@ def main():
         
         with col3:
             if st.session_state.google_maps_results:
-                if st.button("🔄 Clear Results", use_container_width=True):
+                if st.button("🔄 Clear Results", use_container_width=True, key="gmaps_clear_results_btn"):
                     st.session_state.google_maps_results = None
                     st.rerun()
         
@@ -2093,7 +2350,7 @@ def main():
                     st.metric("📧 Email %", f"{gmaps_stats['email_percentage']:.1f}%")
                 
                 # Clear database button
-                if st.button("🗑️ Clear Google Maps Data", type="secondary"):
+                if st.button("🗑️ Clear Google Maps Data", type="secondary", key="gmaps_clear_db_btn"):
                     db_manager.clear_google_maps_data(current_user_id)
                     display_status_card("success", "Google Maps data cleared successfully!", "✨")
                     st.rerun()

@@ -302,3 +302,58 @@ Planned features for future releases:
 - Advanced user settings
 - Two-factor authentication
 - API rate limit dashboard 
+
+
+Get run
+View API reference
+Returns an object containing all details of this run.
+
+https://api.apify.com/v2/actor-runs/OSYBwxHDbYZu6dkot?token=apify_api_YngozeH7dWBGzFmzvITPYFclC6vPQZ00kPNq
+
+
+Get input
+View API reference
+Returns the input of this run from its key-value store.
+
+https://api.apify.com/v2/key-value-stores/Kd5EfNogsC0j5jYyd/records/INPUT?token=apify_api_YngozeH7dWBGzFmzvITPYFclC6vPQZ00kPNq
+
+
+Get output
+View API reference
+Returns the output of this run from its default key-value store.
+
+https://api.apify.com/v2/key-value-stores/Kd5EfNogsC0j5jYyd/records/OUTPUT?token=apify_api_YngozeH7dWBGzFmzvITPYFclC6vPQZ00kPNq
+
+
+
+Get dataset items
+View API reference
+Returns items stored in default dataset of this run.
+https://api.apify.com/v2/datasets/IgiXerOCg2dCEVz3D/items?token=apify_api_YngozeH7dWBGzFmzvITPYFclC6vPQZ00kPNq
+
+
+Get request queue head
+View API reference
+Returns 100 first requests from a default request queue of this run.
+
+https://api.apify.com/v2/request-queues/HMvlZSxtqF3trFIVL/head?token=apify_api_YngozeH7dWBGzFmzvITPYFclC6vPQZ00kPNq
+
+Get log
+View API reference
+Returns the log of this run.
+
+https://api.apify.com/v2/logs/OSYBwxHDbYZu6dkot?token=apify_api_YngozeH7dWBGzFmzvITPYFclC6vPQZ00kPNq
+
+
+Abort run
+View API reference
+Aborts the current run.
+
+https://api.apify.com/v2/actor-runs/OSYBwxHDbYZu6dkot/abort?token=apify_api_YngozeH7dWBGzFmzvITPYFclC6vPQZ00kPNq
+
+
+Resurrect run
+View API reference
+Resurrects the current run.
+
+https://api.apify.com/v2/actor-runs/OSYBwxHDbYZu6dkot/resurrect?token=apify_api_YngozeH7dWBGzFmzvITPYFclC6vPQZ00kPNq
