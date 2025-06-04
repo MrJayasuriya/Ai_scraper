@@ -985,112 +985,6 @@ def create_jobs_excel_download(jobs_data, filename, job_query="", job_location="
     
     return output.getvalue()
 
-def create_clinic_tracking_excel(businesses_df, filename="clinic_tracking.xlsx"):
-    """Create a specialized Excel format for clinic/business tracking"""
-    if businesses_df.empty:
-        return None
-    
-    # Create the specialized format DataFrame
-    clinic_data = []
-    
-    for _, business in businesses_df.iterrows():
-        # Determine time zone based on state/location
-        time_zone = determine_time_zone(business.get('state', ''), business.get('country', ''))
-        
-        # Format the address
-        full_address = format_full_address(business)
-        
-        # Get job name from original_query (this is the job/search that led to finding this business)
-        job_name = business.get('original_query', '') or 'Direct Search'
-        
-        clinic_record = {
-            'Name of Clinic/Person': business.get('business_name', ''),
-            'Phone': business.get('phone', ''),
-            'Time Zone': time_zone,
-            'E-mail': business.get('email', ''),
-            'Stage': '',  # Empty for user to fill
-            'Next Follow Up On': '',  # Empty for user to fill
-            'Notes': f"Job: {job_name}" if job_name != 'Direct Search' else '',
-            'Data From': 'Google Maps',
-            'Additional Info': f"Category: {business.get('category', '')} | Rating: {business.get('rating', '')}",
-            'Address': full_address
-        }
-        clinic_data.append(clinic_record)
-    
-    # Create DataFrame with the specialized format
-    clinic_df = pd.DataFrame(clinic_data)
-    
-    # Create Excel file
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        clinic_df.to_excel(writer, index=False, sheet_name='Clinic_Tracking')
-        
-        # Format the Excel file
-        workbook = writer.book
-        worksheet = writer.sheets['Clinic_Tracking']
-        
-        # Auto-adjust column widths
-        for column_cells in worksheet.columns:
-            length = max(len(str(cell.value)) for cell in column_cells)
-            worksheet.column_dimensions[column_cells[0].column_letter].width = min(length + 2, 50)
-        
-        # Add header formatting
-        from openpyxl.styles import Font, PatternFill, Alignment
-        
-        header_font = Font(bold=True, color='FFFFFF')
-        header_fill = PatternFill(start_color='366092', end_color='366092', fill_type='solid')
-        header_alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
-        
-        for cell in worksheet[1]:
-            cell.font = header_font
-            cell.fill = header_fill
-            cell.alignment = header_alignment
-        
-        # Freeze the header row
-        worksheet.freeze_panes = 'A2'
-    
-    return output.getvalue()
-
-def determine_time_zone(state, country):
-    """Determine time zone based on state/country"""
-    if country.lower() in ['usa', 'united states', 'us']:
-        # US time zones by state
-        eastern_states = ['ny', 'nj', 'pa', 'fl', 'ga', 'nc', 'sc', 'va', 'md', 'de', 'ct', 'ri', 'ma', 'vt', 'nh', 'me', 'dc']
-        central_states = ['tx', 'il', 'mo', 'mn', 'wi', 'ia', 'ar', 'la', 'ms', 'al', 'tn', 'ky', 'in', 'mi', 'oh', 'wv', 'nd', 'sd', 'ne', 'ks', 'ok']
-        mountain_states = ['co', 'wy', 'mt', 'id', 'ut', 'nv', 'az', 'nm']
-        pacific_states = ['ca', 'or', 'wa', 'ak', 'hi']
-        
-        state_lower = state.lower()[:2] if state else ''
-        
-        if state_lower in eastern_states:
-            return 'ET'
-        elif state_lower in central_states:
-            return 'CT' 
-        elif state_lower in mountain_states:
-            return 'MT'
-        elif state_lower in pacific_states:
-            return 'PT'
-    
-    return 'ET'  # Default to Eastern Time
-
-def format_full_address(business):
-    """Format the full address from business data"""
-    address_parts = []
-    
-    if business.get('address'):
-        address_parts.append(str(business['address']))
-    
-    if business.get('city'):
-        address_parts.append(str(business['city']))
-    
-    if business.get('state'):
-        state_zip = str(business['state'])
-        if business.get('zip_code'):
-            state_zip += f" {business['zip_code']}"
-        address_parts.append(state_zip)
-    
-    return ', '.join(address_parts) if address_parts else ''
-
 def display_status_card(status_type, message, icon=""):
     """Display a premium status card"""
     st.markdown(f"""
@@ -2114,7 +2008,7 @@ def main():
         col1, col2 = st.columns([2, 1])
         
         with col1:
-            if not apify_key:
+        if not apify_key:
                 st.markdown("""
                 <div style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(251, 191, 36, 0.1)); 
                             border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 16px; padding: 1.5rem; margin: 1rem 0;">
@@ -2186,7 +2080,7 @@ def main():
             if st.session_state.google_maps_extractor is None:
                 with st.spinner("Initializing Google Maps extractor..."):
                     st.session_state.google_maps_extractor = GoogleMapsExtractor(apify_key)
-                display_status_card("success", "Google Maps extractor ready • Access to comprehensive business data", "✅")
+            display_status_card("success", "Google Maps extractor ready • Access to comprehensive business data", "✅")
             google_extractor = st.session_state.google_maps_extractor
         except Exception as e:
             error_message = str(e)
@@ -2380,34 +2274,15 @@ def main():
                 excel_data = create_download_link(businesses_df, "Google_Maps_Business_Data.xlsx")
                 
                 st.download_button(
-                    label="📥 Raw Data Excel",
+                    label="📥 Download Excel",
                     data=excel_data,
                     file_name="Google_Maps_Business_Data.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    use_container_width=True,
-                    help="Download complete raw business data"
+                    use_container_width=True
                 )
         
         with col3:
             if st.session_state.google_maps_results:
-                # Create clinic tracking Excel download
-                businesses_df = pd.DataFrame(st.session_state.google_maps_results)
-                clinic_excel_data = create_clinic_tracking_excel(businesses_df, "clinic_tracking.xlsx")
-                
-                if clinic_excel_data:
-                    st.download_button(
-                        label="📋 Clinic Tracking",
-                        data=clinic_excel_data,
-                        file_name="clinic_tracking.xlsx",
-                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        use_container_width=True,
-                        help="Download formatted for clinic tracking workflow"
-                    )
-        
-        # Clear Results Button
-        if st.session_state.google_maps_results:
-            col1, col2, col3 = st.columns([2, 1, 1])
-            with col2:
                 if st.button("🔄 Clear Results", use_container_width=True, key="gmaps_clear_results_btn"):
                     st.session_state.google_maps_results = None
                     st.rerun()
@@ -2455,41 +2330,6 @@ def main():
             # Detailed view
             with st.expander("🔍 Complete Business Data"):
                 st.dataframe(businesses_df, use_container_width=True, hide_index=True)
-            
-            # Clinic Tracking Format Info
-            with st.expander("📋 Clinic Tracking Excel Format Preview"):
-                st.markdown("""
-                **📊 Clinic Tracking Excel Features:**
-                
-                This specialized format is designed for clinic/business outreach tracking with the following columns:
-                
-                | Column | Description |
-                |--------|-------------|
-                | **Name of Clinic/Person** | Business name from Google Maps |
-                | **Phone** | Direct phone number |
-                | **Time Zone** | Auto-detected based on location (ET/CT/MT/PT) |
-                | **E-mail** | Email address (if available) |
-                | **Stage** | Empty - for your workflow stage tracking |
-                | **Next Follow Up On** | Empty - for scheduling follow-ups |
-                | **Notes** | Includes the job/search query that led to this business |
-                | **Data From** | Source identifier (Google Maps) |
-                | **Additional Info** | Category and rating information |
-                | **Address** | Complete formatted address |
-                
-                **✨ Special Features:**
-                - **Job Context**: Each record includes the original search/job query in the Notes field
-                - **Time Zone Detection**: Automatically determines time zone based on business location
-                - **Ready for CRM**: Pre-formatted columns for tracking stages and follow-ups
-                - **Professional Layout**: Headers, formatting, and frozen rows for easy use
-                """)
-                
-                # Show a preview of the format
-                if len(businesses_df) > 0:
-                    sample_clinic_data = create_clinic_tracking_excel(businesses_df.head(3))
-                    if sample_clinic_data:
-                        sample_df = pd.read_excel(BytesIO(sample_clinic_data))
-                        st.markdown("**📋 Sample Preview (First 3 Records):**")
-                        st.dataframe(sample_df, use_container_width=True, hide_index=True)
         
         # Show database statistics
         st.markdown('<div class="section-header">📊 Database Statistics</div>', unsafe_allow_html=True)
@@ -2509,49 +2349,11 @@ def main():
                 with col4:
                     st.metric("📧 Email %", f"{gmaps_stats['email_percentage']:.1f}%")
                 
-                # Database actions
-                st.markdown("### 💾 Database Actions")
-                col1, col2, col3 = st.columns(3)
-                
-                with col1:
-                    # Download database records as clinic tracking format
-                    if st.button("📋 Download DB as Clinic Tracking", use_container_width=True, key="gmaps_db_clinic_download"):
-                        db_businesses_df = db_manager.get_google_maps_businesses(current_user_id)
-                        if not db_businesses_df.empty:
-                            db_clinic_excel = create_clinic_tracking_excel(db_businesses_df, "database_clinic_tracking.xlsx")
-                            if db_clinic_excel:
-                                st.download_button(
-                                    label="📥 Download Clinic Tracking (DB)",
-                                    data=db_clinic_excel,
-                                    file_name="database_clinic_tracking.xlsx",
-                                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                    key="gmaps_db_clinic_download_btn"
-                                )
-                        else:
-                            st.warning("No database records found")
-                
-                with col2:
-                    # Download raw database records
-                    if st.button("📥 Download DB as Raw Excel", use_container_width=True, key="gmaps_db_raw_download"):
-                        db_businesses_df = db_manager.get_google_maps_businesses(current_user_id)
-                        if not db_businesses_df.empty:
-                            db_raw_excel = create_download_link(db_businesses_df, "database_business_data.xlsx")
-                            st.download_button(
-                                label="📥 Download Raw Data (DB)",
-                                data=db_raw_excel,
-                                file_name="database_business_data.xlsx",
-                                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                key="gmaps_db_raw_download_btn"
-                            )
-                        else:
-                            st.warning("No database records found")
-                
-                with col3:
-                    # Clear database button
-                    if st.button("🗑️ Clear Google Maps Data", type="secondary", use_container_width=True, key="gmaps_clear_db_btn"):
-                        db_manager.clear_google_maps_data(current_user_id)
-                        display_status_card("success", "Google Maps data cleared successfully!", "✨")
-                        st.rerun()
+                # Clear database button
+                if st.button("🗑️ Clear Google Maps Data", type="secondary", key="gmaps_clear_db_btn"):
+                    db_manager.clear_google_maps_data(current_user_id)
+                    display_status_card("success", "Google Maps data cleared successfully!", "✨")
+                    st.rerun()
             else:
                 st.info("No Google Maps business data in database yet. Extract some businesses to see statistics!")
         

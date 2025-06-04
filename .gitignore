@@ -3,8 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Streamlit specific
-.streamlit/secrets_local.toml
+.streamlit
 # C extensions
 *.so
 scraper_data.db
@@ -190,10 +189,3 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
-
-# Test files and temporary data
-test_*.py
-test_*.json
-*_test.py
-tmp/
-temp/
