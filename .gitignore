@@ -3,11 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Streamlit secrets and configuration
 .streamlit/secrets.toml
-# Keep config.toml but ignore secrets
-# .streamlit/config.toml can be included
-
 # C extensions
 *.so
 scraper_data.db

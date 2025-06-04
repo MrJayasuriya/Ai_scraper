@@ -2008,7 +2008,7 @@ def main():
         col1, col2 = st.columns([2, 1])
         
         with col1:
-        if not apify_key:
+            if not apify_key:
                 st.markdown("""
                 <div style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(251, 191, 36, 0.1)); 
                             border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 16px; padding: 1.5rem; margin: 1rem 0;">
@@ -2159,13 +2159,26 @@ def main():
                     if unique_companies:
                         st.info(f"📊 Found {len(unique_companies)} unique companies from job search results")
                         
+                        # Show some examples of the companies found
+                        if len(unique_companies) > 3:
+                            st.markdown(f"**Sample companies:** {', '.join(unique_companies[:3])}, and {len(unique_companies)-3} more...")
+                        else:
+                            st.markdown(f"**Companies found:** {', '.join(unique_companies)}")
+                        
                         # Allow user to select companies
                         selected_companies = st.multiselect(
                             "Select Companies to Extract",
                             unique_companies,
-                            default=unique_companies[:10],  # Pre-select first 10
+                            default=unique_companies,  # Pre-select ALL companies
                             help="Choose which companies to extract business data for"
                         )
+                        
+                        # Show processing warning for large numbers
+                        if len(selected_companies) > 15:
+                            st.warning(f"⚠️ You've selected {len(selected_companies)} companies. This may take 5-10 minutes to process. Each company requires ~3-5 seconds for API calls.")
+                        elif len(selected_companies) > 5:
+                            st.info(f"ℹ️ Processing {len(selected_companies)} companies will take approximately {len(selected_companies)*3//60 + 1} minutes.")
+                        
                         companies_to_search = selected_companies
                     else:
                         st.warning("No company names found in job search results")
