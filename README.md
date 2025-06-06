@@ -357,3 +357,56 @@ View API reference
 Resurrects the current run.
 
 https://api.apify.com/v2/actor-runs/OSYBwxHDbYZu6dkot/resurrect?token=apify_api_YngozeH7dWBGzFmzvITPYFclC6vPQZ00kPNq
+
+
+Run Actor
+View API reference
+Runs this Actor. The POST payload including its Content-Type header is passed as INPUT to the Actor (typically application/json). The Actor is started with the default options; you can override them using various URL query parameters.
+
+https://api.apify.com/v2/acts/bebity~linkedin-jobs-scraper/runs?token=apify_api_YngozeH7dWBGzFmzvITPYFclC6vPQZ00kPNq
+
+
+Run Actor synchronously
+View API reference
+Runs this Actor and waits for it to finish. The POST payload including its Content-Type is passed as INPUT to the Actor (usually application/json) and the OUTPUT is returned in the HTTP response. The Actor is started with the default options; you can override them using various URL query parameters. Note that long HTTP connections might break.
+
+https://api.apify.com/v2/acts/bebity~linkedin-jobs-scraper/run-sync?token=apify_api_YngozeH7dWBGzFmzvITPYFclC6vPQZ00kPNq
+
+
+Run Actor synchronously and get dataset items
+View API reference
+Runs this Actor and waits for it to finish. The POST payload including its Content-Type header is passed as INPUT to the Actor (usually application/json). The HTTP response contains the Actor's dataset items, while the format of items depends on specifying dataset items' format parameter.
+
+https://api.apify.com/v2/acts/bebity~linkedin-jobs-scraper/run-sync-get-dataset-items?token=apify_api_YngozeH7dWBGzFmzvITPYFclC6vPQZ00kPNq
+
+
+Get Actor
+View API reference
+Returns settings of this Actor in JSON format.
+
+https://api.apify.com/v2/acts/bebity~linkedin-jobs-scraper?token=apify_api_YngozeH7dWBGzFmzvITPYFclC6vPQZ00kPNq
+
+Get list of Actor versions
+View API reference
+Returns a list of versions of this Actor in JSON format.
+
+https://api.apify.com/v2/acts/bebity~linkedin-jobs-scraper/webhooks?token=apify_api_YngozeH7dWBGzFmzvITPYFclC6vPQZ00kPNq
+
+Get list of Actor webhooks
+View API reference
+Returns a list of webhooks of this Actor in JSON format.
+
+https://api.apify.com/v2/acts/bebity~linkedin-jobs-scraper/webhooks?token=apify_api_YngozeH7dWBGzFmzvITPYFclC6vPQZ00kPNq
+
+Update Actor
+View API reference
+Updates settings of this Actor. The POST payload must be a JSON object with fields to update.
+
+https://api.apify.com/v2/acts/bebity~linkedin-jobs-scraper?token=apify_api_YngozeH7dWBGzFmzvITPYFclC6vPQZ00kPNq
+
+
+Update Actor version
+View API reference
+Updates version of this Actor. Replace the 0.0 with the updating version number. The POST payload must be a JSON object with fields to update.
+
+https://api.apify.com/v2/acts/bebity~linkedin-jobs-scraper/versions/0.0?token=apify_api_YngozeH7dWBGzFmzvITPYFclC6vPQZ00kPNq

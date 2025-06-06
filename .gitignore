@@ -189,3 +189,32 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+
+# Test and temporary files
+test_*.py
+test_*.xlsx
+debug_*.py
+debug_*.xlsx
+*_test.py
+*_debug.py
+analyze_*.py
+fetch_*.py
+*_analysis.xlsx
+*_data.json
+*_jobs.xlsx
+SOLUTION_SUMMARY.md
+WORKSPACE_STATUS.md
+
+# Temporary files
+temp/
+tmp/
+*.tmp
+*.temp
+
+# Log files
+*.log
+
+# Configuration files with sensitive data
+config.py
+secrets.py
+keys.py
